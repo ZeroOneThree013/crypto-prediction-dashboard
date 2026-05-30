@@ -4,24 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Crypto Price Prediction Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root {
-    --bg:        #0a0a0f;
-    --bg2:       #111118;
-    --bg3:       #1a1a24;
-    --border:    #2a2a3a;
-    --accent:    #e8ff47;
-    --accent2:   #47d4ff;
-    --accent3:   #ff6b47;
-    --text:      #e8e8f0;
-    --text-dim:  #6b6b80;
-    --green:     #4ade80;
-    --red:       #f87171;
-    --mono:      'Space Mono', monospace;
-    --sans:      'Syne', sans-serif;
+    --bg:        #f5f6fa;
+    --bg2:       #ffffff;
+    --bg3:       #eef0f6;
+    --border:    #dde0ea;
+    --accent:    #4a7fd4;
+    --accent2:   #3a9bdc;
+    --accent3:   #e07b54;
+    --text:      #2c2f3a;
+    --text-dim:  #8a8fa8;
+    --red:       #3aac6e;
+    --buy:       #e8503a;
+    --sell:      #3aac6e;
+    --green:     #d95f5f;
+    --mono:      'Microsoft JhengHei', '微軟正黑體', sans-serif;
+    --sans:      'Microsoft JhengHei', '微軟正黑體', sans-serif;
   }
 
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -46,7 +47,7 @@
     position: absolute;
     top: -60px; right: -60px;
     width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(232,255,71,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(74,127,212,0.08) 0%, transparent 70%);
     pointer-events: none;
   }
   .header-label {
@@ -145,7 +146,7 @@
     top: 0; left: 0; right: 0;
     height: 2px;
     background: var(--accent);
-    opacity: 0.4;
+    opacity: 0.6;
   }
   .card-label {
     font-family: var(--mono);
@@ -364,7 +365,6 @@
 <body>
 
 <header>
-  <div class="header-label">Murray et al. 2023 · Deep Learning</div>
   <h1>Crypto Price<br><span>Prediction</span> Dashboard</h1>
   <div class="header-sub">
     BTC-USD &amp; ETH-USD &nbsp;·&nbsp; 2021.05 – 2026.05 &nbsp;·&nbsp;
@@ -607,16 +607,16 @@ function showTab(name) {
 const chartCfg = () => ({
   responsive: true,
   plugins: {
-    legend: { labels: { color:'#e8e8f0', font:{family:'Space Mono',size:11}, boxWidth:12 } },
+    legend: { labels: { color:'#2c2f3a', font:{family:'Microsoft JhengHei',size:11}, boxWidth:12 } },
     tooltip: {
-      backgroundColor:'#1a1a24', borderColor:'#2a2a3a', borderWidth:1,
-      titleColor:'#e8ff47', bodyColor:'#e8e8f0',
+      backgroundColor:'#ffffff', borderColor:'#dde0ea', borderWidth:1,
+      titleColor:'#4a7fd4', bodyColor:'#2c2f3a',
       titleFont:{family:'Space Mono'}, bodyFont:{family:'Space Mono',size:11}
     }
   },
   scales: {
-    x: { ticks:{color:'#6b6b80',font:{family:'Space Mono',size:10}}, grid:{color:'rgba(42,42,58,0.5)'} },
-    y: { ticks:{color:'#6b6b80',font:{family:'Space Mono',size:10}}, grid:{color:'rgba(42,42,58,0.5)'} }
+    x: { ticks:{color:'#8a8fa8',font:{family:'Microsoft JhengHei',size:10}}, grid:{color:'rgba(180,185,210,0.4)'} },
+    y: { ticks:{color:'#8a8fa8',font:{family:'Microsoft JhengHei',size:10}}, grid:{color:'rgba(180,185,210,0.4)'} }
   }
 });
 
@@ -807,16 +807,28 @@ async function loadBacktest() {
   if (!preds) return;
 
   const portData = simulateAll(preds, 10000);
+  // 計算 S2 的買賣點（用於圈選）
+  const s2sim = simulate(preds, 10000, 0.001, 0);
+  const s2port = s2sim.portfolio;
+  const buyDots  = preds.map((_,i) => s2sim.buyIdx.includes(i)  ? s2port[i] : null);
+  const sellDots = preds.map((_,i) => s2sim.sellIdx.includes(i) ? s2port[i] : null);
+
   destroyChart('bt');
   charts['bt'] = new Chart(document.getElementById('chart-bt'), {
     type:'line',
     data:{
       labels: preds.map((_,i)=>`D${i+1}`),
       datasets:[
-        { label:'Buy & Hold', data:portData.bh, borderColor:'#6b6b80', borderWidth:1.5, pointRadius:0, tension:0.2 },
-        { label:'S1（無費）', data:portData.s1, borderColor:'#e8ff47', borderWidth:1.5, pointRadius:0, tension:0.2 },
-        { label:'S2（含費）', data:portData.s2, borderColor:'#47d4ff', borderWidth:1.5, pointRadius:0, tension:0.2 },
-        { label:'S3（門檻1%）',data:portData.s3, borderColor:'#ff6b47', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'Buy & Hold', data:portData.bh, borderColor:'#8a8fa8', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'S1（無費）', data:portData.s1, borderColor:'#4a7fd4', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'S2（含費）', data:portData.s2, borderColor:'#3a9bdc', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'S3（門檻1%）',data:portData.s3, borderColor:'#e07b54', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'買入點', data:buyDots,  type:'scatter',
+          backgroundColor:'#e8503a', borderColor:'#ffffff',
+          borderWidth:2, pointRadius:7, pointStyle:'circle', showLine:false },
+        { label:'賣出點', data:sellDots, type:'scatter',
+          backgroundColor:'#3aac6e', borderColor:'#ffffff',
+          borderWidth:2, pointRadius:7, pointStyle:'circle', showLine:false },
       ]
     },
     options: chartCfg()
@@ -865,15 +877,25 @@ async function simUpdate() {
   document.getElementById('sim-sharpe').textContent = strat.sharpe.toFixed(3);
   document.getElementById('sim-trades').textContent = strat.trades;
 
+  // 買賣點
+  const simBuyDots  = preds.map((_,i) => strat.buyIdx.includes(i)  ? strat.portfolio[i] : null);
+  const simSellDots = preds.map((_,i) => strat.sellIdx.includes(i) ? strat.portfolio[i] : null);
+
   destroyChart('sim');
   charts['sim'] = new Chart(document.getElementById('chart-sim'), {
     type:'line',
     data:{
       labels: preds.map((_,i)=>`D${i+1}`),
       datasets:[
-        { label:'Buy & Hold', data:bh.portfolio,    borderColor:'#6b6b80', borderWidth:1.5, pointRadius:0, tension:0.2, fill:false },
-        { label:'策略',       data:strat.portfolio, borderColor:'#e8ff47', borderWidth:2,   pointRadius:0, tension:0.2,
-          fill:{ target:'origin', above:'rgba(232,255,71,0.05)', below:'rgba(248,113,113,0.05)' } },
+        { label:'Buy & Hold', data:bh.portfolio,    borderColor:'#8a8fa8', borderWidth:1.5, pointRadius:0, tension:0.2, fill:false },
+        { label:'策略',       data:strat.portfolio, borderColor:'#4a7fd4', borderWidth:2,   pointRadius:0, tension:0.2,
+          fill:{ target:'origin', above:'rgba(74,127,212,0.06)', below:'rgba(58,172,110,0.06)' } },
+        { label:'買入', data:simBuyDots,  type:'scatter',
+          backgroundColor:'#e8503a', borderColor:'#ffffff',
+          borderWidth:2, pointRadius:7, pointStyle:'circle', showLine:false },
+        { label:'賣出', data:simSellDots, type:'scatter',
+          backgroundColor:'#3aac6e', borderColor:'#ffffff',
+          borderWidth:2, pointRadius:7, pointStyle:'circle', showLine:false },
       ]
     },
     options: chartCfg()
@@ -885,14 +907,14 @@ async function simUpdate() {
 // ══════════════════════════════════════════════════════════════
 function simulate(rows, capital, fee=0.001, thr=0) {
   let cash=capital, pos=0;
-  const portfolio=[], trades=[];
+  const portfolio=[], trades=[], buyIdx=[], sellIdx=[];
   for (let i=0;i<rows.length-1;i++){
     const pNow=rows[i].true_close, pNext=rows[i+1].pred_close;
     const chg=(pNext-pNow)/pNow;
     if (chg>thr && pos===0 && cash>0){
-      pos=cash*(1-fee)/pNow; cash=0; trades.push(1);
+      pos=cash*(1-fee)/pNow; cash=0; trades.push(1); buyIdx.push(i);
     } else if (chg<-thr && pos>0){
-      cash=pos*pNow*(1-fee); pos=0; trades.push(1);
+      cash=pos*pNow*(1-fee); pos=0; trades.push(1); sellIdx.push(i);
     }
     portfolio.push(cash+pos*pNow);
   }
@@ -910,7 +932,7 @@ function simulate(rows, capital, fee=0.001, thr=0) {
   const mean=dret.reduce((a,b)=>a+b,0)/dret.length;
   const std=Math.sqrt(dret.reduce((a,b)=>a+(b-mean)**2,0)/dret.length);
   const sharpe=mean/(std+1e-8)*Math.sqrt(365);
-  return { portfolio, final, maxDd, sharpe, trades:trades.length };
+  return { portfolio, final, maxDd, sharpe, trades:trades.length, buyIdx, sellIdx };
 }
 
 function simulateBH(rows, capital) {
