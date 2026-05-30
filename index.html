@@ -401,7 +401,7 @@
   </div>
   <div class="chart-wrap">
     <div class="chart-title">RMSE 比較 — 所有實驗</div>
-    <div class="chart-fixed chart-fixed-320"><canvas id="chart-overview"></canvas></div></canvas>
+    <div class="chart-fixed chart-fixed-320"><canvas id="chart-overview"></canvas></div>
   </div>
   <div class="table-wrap">
     <table>
@@ -423,7 +423,7 @@
   <div class="controls">
     <div class="control-group">
       <label>幣別</label>
-      <select id="pred-coin" onchange="loadPrediction()">
+      <select id="pred-coin" onchange="initPredTab()">
         <option value="BTC">BTC</option>
         <option value="ETH">ETH</option>
       </select>
@@ -436,11 +436,11 @@
   <div id="pred-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">預測價格 vs 真實價格</div>
-    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></canvas></div></canvas>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></canvas></div>
   </div>
   <div class="chart-wrap">
     <div class="chart-title">月度 RMSE 走勢</div>
-    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></canvas></div></canvas>
+    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></canvas></div>
   </div>
 </div>
 
@@ -451,7 +451,7 @@
   <div class="controls">
     <div class="control-group">
       <label>幣別</label>
-      <select id="bt-coin" onchange="loadBacktest()">
+      <select id="bt-coin" onchange="initBtTab()">
         <option value="BTC">BTC</option>
         <option value="ETH">ETH</option>
       </select>
@@ -464,7 +464,7 @@
   <div id="bt-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">資產曲線（初始資金 $10,000）</div>
-    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></canvas></div></canvas>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></canvas></div>
   </div>
   <div class="table-wrap">
     <table>
@@ -488,7 +488,7 @@
       <h3>參數設定</h3>
       <div class="sim-row">
         <label>幣別</label>
-        <select id="sim-coin" onchange="simUpdate()">
+        <select id="sim-coin" onchange="initSimTab()">
           <option value="BTC">BTC</option>
           <option value="ETH">ETH</option>
         </select>
@@ -538,7 +538,7 @@
     <div>
       <div class="chart-wrap">
         <div class="chart-title">資產曲線 vs Buy &amp; Hold</div>
-        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></canvas></div></canvas>
+        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></canvas></div>
       </div>
     </div>
   </div>
@@ -550,7 +550,7 @@
 // ══════════════════════════════════════════════════════════════
 // DATA LAYER
 // ══════════════════════════════════════════════════════════════
-const DATA_ROOT = './data';
+const DATA_ROOT = '.';
 
 const BASELINE_TAGS = {
   BTC: ['LSTM-BTC','GRU-BTC','HYBRID-BTC'],
@@ -560,6 +560,24 @@ const OPT_TAGS = {
   BTC: ['HYBRID-BTC-OHLC','HYBRID-BTC-OHLC-Range','HYBRID-BTC-xETH','HYBRID-BTC-AB'],
   ETH: ['GRU-ETH-OHLC','GRU-ETH-OHLC-Range','GRU-ETH-xBTC','GRU-ETH-AB'],
 };
+
+// Tag → actual filename stem (dashes removed, special chars normalized)
+const TAG_TO_FILE = {
+  'LSTM-BTC':              'LSTMBTC',
+  'GRU-BTC':               'GRUBTC',
+  'HYBRID-BTC':            'HYBRIDBTC',
+  'LSTM-ETH':              'LSTMETH',
+  'GRU-ETH':               'GRUETH',
+  'HYBRID-ETH':            'HYBRIDETH',
+  'HYBRID-BTC-OHLC':       'HYBRIDBTCOHLC',
+  'HYBRID-BTC-OHLC-Range': 'HYBRIDBTCOHLCRange',
+  'HYBRID-BTC-xETH':       'HYBRIDBTCxETH',
+  'HYBRID-BTC-AB':         'HYBRIDBTCAB',
+  'GRU-ETH-OHLC':          'GRUETHOHLC',
+  'GRU-ETH-OHLC-Range':    'GRUETHOHLCRange',
+  'GRU-ETH-xBTC':          'GRUETHxBTC',
+  'GRU-ETH-AB':            'GRUETHAB',
+};
 const TAG_LABEL = {
   'LSTM-BTC':'基準 LSTM','GRU-BTC':'基準 GRU','HYBRID-BTC':'基準 HYBRID★',
   'LSTM-ETH':'基準 LSTM','GRU-ETH':'基準 GRU★','HYBRID-ETH':'基準 HYBRID',
@@ -567,6 +585,16 @@ const TAG_LABEL = {
   'HYBRID-BTC-xETH':'OPT-B (CrossCoin)','HYBRID-BTC-AB':'OPT-AB',
   'GRU-ETH-OHLC':'OPT-A (OHLC)','GRU-ETH-OHLC-Range':'OPT-A2 (OHLC+Range)',
   'GRU-ETH-xBTC':'OPT-B (CrossCoin)','GRU-ETH-AB':'OPT-AB',
+};
+
+// Tag → FULL_SUMMARY Phase (for metric card lookup)
+const TAG_TO_PHASE = {
+  'LSTM-BTC':'基準', 'GRU-BTC':'基準', 'HYBRID-BTC':'基準★',
+  'LSTM-ETH':'基準', 'GRU-ETH':'基準★', 'HYBRID-ETH':'基準',
+  'HYBRID-BTC-OHLC':'OPT-A', 'HYBRID-BTC-OHLC-Range':'OPT-A2',
+  'HYBRID-BTC-xETH':'OPT-B', 'HYBRID-BTC-AB':'OPT-AB',
+  'GRU-ETH-OHLC':'OPT-A', 'GRU-ETH-OHLC-Range':'OPT-A2',
+  'GRU-ETH-xBTC':'OPT-B', 'GRU-ETH-AB':'OPT-AB',
 };
 
 const STRATEGY_COLORS = {
@@ -584,9 +612,8 @@ const predCache = {}, btChartData = {};
 const charts = {};
 
 function csvPath(tag) {
-  const all = [...(BASELINE_TAGS.BTC||[]),...(BASELINE_TAGS.ETH||[])];
-  const folder = all.includes(tag) ? 'baseline' : 'opt';
-  return `${DATA_ROOT}/${folder}/${tag}_predictions.csv`;
+  const stem = TAG_TO_FILE[tag] || tag.replace(/-/g,"");
+  return `${DATA_ROOT}/${stem}_predictions.csv`;
 }
 
 
@@ -714,17 +741,18 @@ async function initOverview() {
     </tr>`).join('');
 
   // Chart
-  const phases  = [...new Set(summaryData.map(r=>r.Phase))];
-  const btcVals = phases.map(p => { const r=summaryData.find(x=>x.Phase===p&&x.Coin==='BTC'); return r?r.RMSE:null; });
-  const ethVals = phases.map(p => { const r=summaryData.find(x=>x.Phase===p&&x.Coin==='ETH'); return r?r.RMSE:null; });
+  // Use Phase+Model as unique labels to show ALL 14 rows (not just first match per phase)
+  const ovLabels = summaryData.map(r => `${r.Phase} ${r.Model}`);
+  const ovBTC    = summaryData.map(r => r.Coin==='BTC' ? r.RMSE : null);
+  const ovETH    = summaryData.map(r => r.Coin==='ETH' ? r.RMSE : null);
   destroyChart('overview');
   charts['overview'] = new Chart(document.getElementById('chart-overview'), {
     type:'bar',
     data:{
-      labels: phases,
+      labels: ovLabels,
       datasets:[
-        { label:'BTC', data:btcVals, backgroundColor:'rgba(224,100,60,0.85)', borderColor:'#e0643c', borderWidth:1, borderRadius:4 },
-        { label:'ETH', data:ethVals, backgroundColor:'rgba(37,99,199,0.85)', borderColor:'#2563c7', borderWidth:1, borderRadius:4 },
+        { label:'BTC', data:ovBTC, backgroundColor:'rgba(224,100,60,0.85)', borderColor:'#e0643c', borderWidth:1, borderRadius:4 },
+        { label:'ETH', data:ovETH, backgroundColor:'rgba(37,99,199,0.85)', borderColor:'#2563c7', borderWidth:1, borderRadius:4 },
       ]
     },
     options:{ ...chartCfg(), plugins:{...chartCfg().plugins} }
@@ -767,7 +795,7 @@ async function loadPrediction() {
   const rows = predCache[tag];
 
   // summary from FULL_SUMMARY
-  const s = summaryData.find(r=>r.Coin===coin && (r.Model===tag.split('-')[0] || r.Phase===`OPT-${tag.split('-').slice(2).join('-')}`));
+  const s = summaryData.find(r=>r.Coin===coin && r.Phase===TAG_TO_PHASE[tag]);
 
   // Cards
   document.getElementById('pred-cards').innerHTML = [
@@ -819,7 +847,7 @@ async function loadPrediction() {
 // BACKTEST TAB
 // ══════════════════════════════════════════════════════════════
 async function initBtTab() {
-  btData = await loadCSV(`${DATA_ROOT}/backtest_summary.csv`);
+  if (!btData.length) btData = await loadCSV(`${DATA_ROOT}/backtest_summary.csv`);
   const coin = document.getElementById('bt-coin').value;
   const exps = [...new Set(btData.filter(r=>r.Coin===coin).map(r=>r.Experiment))];
   const sel  = document.getElementById('bt-exp');
