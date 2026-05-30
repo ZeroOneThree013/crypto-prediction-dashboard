@@ -384,10 +384,10 @@
 </header>
 
 <nav>
-  <button class="active" onclick="showTab('overview')">Overview</button>
-  <button onclick="showTab('prediction')">預測表現</button>
-  <button onclick="showTab('backtest')">回測結果</button>
-  <button onclick="showTab('simulator')">模擬器</button>
+  <button class="active" onclick="showTab('overview',this)">Overview</button>
+  <button onclick="showTab('prediction',this)">預測表現</button>
+  <button onclick="showTab('backtest',this)">回測結果</button>
+  <button onclick="showTab('simulator',this)">模擬器</button>
 </nav>
 
 <main>
@@ -439,7 +439,7 @@
     <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></canvas></div>
   </div>
   <div class="chart-wrap">
-    <div class="chart-title">月度 RMSE 走勢</div>
+    <div class="chart-title">月度 RMSE 走勢（正規化尺度）</div>
     <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></canvas></div>
   </div>
 </div>
@@ -658,11 +658,11 @@ function loadCSV(url) {
 // ══════════════════════════════════════════════════════════════
 // TAB NAV
 // ══════════════════════════════════════════════════════════════
-function showTab(name) {
+function showTab(name, btn) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
   if (name === 'prediction') initPredTab();
   if (name === 'backtest')   initBtTab();
   if (name === 'simulator')  initSimTab();
@@ -763,7 +763,8 @@ function card(label, value, cls='', sub='') {
 // ══════════════════════════════════════════════════════════════
 // PREDICTION TAB
 // ══════════════════════════════════════════════════════════════
-function initPredTab() {
+async function initPredTab() {
+  if (!summaryData.length) await initOverview();
   const coin = document.getElementById('pred-coin').value;
   const tags  = [...(BASELINE_TAGS[coin]||[]), ...(OPT_TAGS[coin]||[])];
   const sel   = document.getElementById('pred-exp');
@@ -783,9 +784,10 @@ async function loadPrediction() {
   }
 
   if (!predCache[tag]) {
-    predCache[tag] = await loadCSV(csvPath(tag));
+    predCache[tag] = await loadCSV(csvPath(tag)).catch(()=>null);
   }
   const rows = predCache[tag];
+  if (!rows) return;
 
   // summary from FULL_SUMMARY
   const _sm = TAG_TO_SUMMARY[tag] || {};
