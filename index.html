@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Price Prediction Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --bg2:       #111118;
+    --bg3:       #1a1a24;
+    --border:    #2a2a3a;
+    --accent:    #e8ff47;
+    --accent2:   #47d4ff;
+    --accent3:   #ff6b47;
+    --text:      #e8e8f0;
+    --text-dim:  #6b6b80;
+    --green:     #4ade80;
+    --red:       #f87171;
+    --mono:      'Space Mono', monospace;
+    --sans:      'Syne', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(232,255,71,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  header h1 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+  }
+  header h1 span { color: var(--accent); }
+  .header-sub {
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  /* ── NAV TABS ── */
+  nav {
+    display: flex;
+    gap: 0;
+    padding: 0 48px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  nav button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 16px 24px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  nav button:hover { color: var(--text); }
+  nav button.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ── MAIN CONTENT ── */
+  main { padding: 40px 48px; max-width: 1400px; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .section-heading {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    letter-spacing: -0.5px;
+  }
+
+  /* ── METRIC CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+  .card-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card-value.green { color: var(--green); }
+  .card-value.red { color: var(--red); }
+  .card-value.accent { color: var(--accent); }
+  .card-value.accent2 { color: var(--accent2); }
+  .card-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 32px;
+    align-items: center;
+  }
+  .control-group { display: flex; flex-direction: column; gap: 4px; }
+  .control-group label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  select, input[type=range] {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  select:hover, select:focus { border-color: var(--accent); }
+  input[type=range] {
+    padding: 4px 0;
+    accent-color: var(--accent);
+    width: 160px;
+  }
+  .range-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  /* ── CHART CONTAINER ── */
+  .chart-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .chart-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  canvas { width: 100% !important; }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .table-wrap th {
+    background: var(--bg3);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-wrap td {
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    color: var(--text);
+  }
+  .table-wrap tr:last-child td { border-bottom: none; }
+  .table-wrap tr:hover td { background: var(--bg3); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .badge-btc { background: rgba(247,147,26,0.15); color: #f7931a; }
+  .badge-eth { background: rgba(98,126,234,0.15); color: #627eea; }
+  .badge-best { background: rgba(232,255,71,0.15); color: var(--accent); }
+
+  /* ── SIMULATOR ── */
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .sim-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .sim-panel h3 {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .sim-row {
+    margin-bottom: 20px;
+  }
+  .sim-row label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .sim-row label span { color: var(--accent); }
+  .sim-row input[type=range] { width: 100%; }
+  .sim-results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .sim-metric { text-align: center; }
+  .sim-metric-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .sim-metric-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ── LOADING ── */
+  .loading {
+    text-align: center;
+    padding: 60px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  .loading::after {
+    content: '';
+    display: block;
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 16px auto 0;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    header, nav, main { padding-left: 20px; padding-right: 20px; }
+    .sim-layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-label">Murray et al. 2023 · Deep Learning</div>
+  <h1>Crypto Price<br><span>Prediction</span> Dashboard</h1>
+  <div class="header-sub">
+    BTC-USD &amp; ETH-USD &nbsp;·&nbsp; 2021.05 – 2026.05 &nbsp;·&nbsp;
+    LSTM / GRU / HYBRID &nbsp;·&nbsp; OPT-A / A2 / B / AB
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('overview')">Overview</button>
+  <button onclick="showTab('prediction')">預測表現</button>
+  <button onclick="showTab('backtest')">回測結果</button>
+  <button onclick="showTab('simulator')">模擬器</button>
+</nav>
+
+<main>
+
+<!-- ══ TAB 1: OVERVIEW ══ -->
+<div id="tab-overview" class="section active">
+  <div class="section-title">Summary</div>
+  <div class="section-heading">實驗結果總覽</div>
+  <div id="overview-cards" class="cards-grid">
+    <div class="loading">載入中</div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">RMSE 比較 — 所有實驗</div>
+    <canvas id="chart-overview" height="320"></canvas>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>實驗</th><th>幣別</th><th>模型</th>
+          <th>RMSE</th><th>MAE</th><th>MAPE%</th><th>R²</th>
+        </tr>
+      </thead>
+      <tbody id="summary-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB 2: PREDICTION ══ -->
+<div id="tab-prediction" class="section">
+  <div class="section-title">Model Performance</div>
+  <div class="section-heading">月度預測表現</div>
+  <div class="controls">
+    <div class="control-group">
+      <label>幣別</label>
+      <select id="pred-coin" onchange="loadPrediction()">
+        <option value="BTC">BTC</option>
+        <option value="ETH">ETH</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>實驗</label>
+      <select id="pred-exp" onchange="loadPrediction()"></select>
+    </div>
+  </div>
+  <div id="pred-cards" class="cards-grid"></div>
+  <div class="chart-wrap">
+    <div class="chart-title">預測價格 vs 真實價格</div>
+    <canvas id="chart-pred-price" height="280"></canvas>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">月度 RMSE 走勢</div>
+    <canvas id="chart-pred-rmse" height="200"></canvas>
+  </div>
+</div>
+
+<!-- ══ TAB 3: BACKTEST ══ -->
+<div id="tab-backtest" class="section">
+  <div class="section-title">Trading Strategy</div>
+  <div class="section-heading">回測策略比較</div>
+  <div class="controls">
+    <div class="control-group">
+      <label>幣別</label>
+      <select id="bt-coin" onchange="loadBacktest()">
+        <option value="BTC">BTC</option>
+        <option value="ETH">ETH</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>實驗</label>
+      <select id="bt-exp" onchange="loadBacktest()"></select>
+    </div>
+  </div>
+  <div id="bt-cards" class="cards-grid"></div>
+  <div class="chart-wrap">
+    <div class="chart-title">資產曲線（初始資金 $10,000）</div>
+    <canvas id="chart-bt" height="280"></canvas>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>策略</th><th>最終資產</th><th>總報酬率</th>
+          <th>最大回撤</th><th>夏普比率</th><th>交易次數</th>
+        </tr>
+      </thead>
+      <tbody id="bt-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ TAB 4: SIMULATOR ══ -->
+<div id="tab-simulator" class="section">
+  <div class="section-title">Interactive</div>
+  <div class="section-heading">回測模擬器</div>
+  <div class="sim-layout">
+    <div class="sim-panel">
+      <h3>參數設定</h3>
+      <div class="sim-row">
+        <label>幣別</label>
+        <select id="sim-coin" onchange="simUpdate()">
+          <option value="BTC">BTC</option>
+          <option value="ETH">ETH</option>
+        </select>
+      </div>
+      <div class="sim-row">
+        <label>實驗</label>
+        <select id="sim-exp" onchange="simUpdate()"></select>
+      </div>
+      <div class="sim-row">
+        <label>初始資金（USD）<span id="sim-capital-val">10,000</span></label>
+        <input type="range" id="sim-capital" min="1000" max="100000" step="1000" value="10000"
+               oninput="document.getElementById('sim-capital-val').textContent=Number(this.value).toLocaleString(); simUpdate()">
+      </div>
+      <div class="sim-row">
+        <label>手續費<span id="sim-fee-val">0.10%</span></label>
+        <input type="range" id="sim-fee" min="0" max="50" step="1" value="10"
+               oninput="document.getElementById('sim-fee-val').textContent=(this.value/100).toFixed(2)+'%'; simUpdate()">
+      </div>
+      <div class="sim-row">
+        <label>進場門檻<span id="sim-thr-val">0.00%</span></label>
+        <input type="range" id="sim-thr" min="0" max="500" step="5" value="0"
+               oninput="document.getElementById('sim-thr-val').textContent=(this.value/100).toFixed(2)+'%'; simUpdate()">
+      </div>
+      <div class="sim-results">
+        <div class="sim-metric">
+          <div class="sim-metric-val" id="sim-return" style="color:var(--green)">—</div>
+          <div class="sim-metric-label">總報酬率</div>
+        </div>
+        <div class="sim-metric">
+          <div class="sim-metric-val" id="sim-final" style="color:var(--accent)">—</div>
+          <div class="sim-metric-label">最終資產</div>
+        </div>
+        <div class="sim-metric">
+          <div class="sim-metric-val" id="sim-dd" style="color:var(--red)">—</div>
+          <div class="sim-metric-label">最大回撤</div>
+        </div>
+        <div class="sim-metric">
+          <div class="sim-metric-val" id="sim-sharpe" style="color:var(--accent2)">—</div>
+          <div class="sim-metric-label">夏普比率</div>
+        </div>
+        <div class="sim-metric" style="grid-column:span 2">
+          <div class="sim-metric-val" id="sim-trades" style="color:var(--text)">—</div>
+          <div class="sim-metric-label">交易次數</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-wrap">
+        <div class="chart-title">資產曲線 vs Buy &amp; Hold</div>
+        <canvas id="chart-sim" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA LAYER
+// ══════════════════════════════════════════════════════════════
+const DATA_ROOT = './data';
+
+const BASELINE_TAGS = {
+  BTC: ['LSTM-BTC','GRU-BTC','HYBRID-BTC'],
+  ETH: ['LSTM-ETH','GRU-ETH','HYBRID-ETH'],
+};
+const OPT_TAGS = {
+  BTC: ['HYBRID-BTC-OHLC','HYBRID-BTC-OHLC-Range','HYBRID-BTC-xETH','HYBRID-BTC-AB'],
+  ETH: ['GRU-ETH-OHLC','GRU-ETH-OHLC-Range','GRU-ETH-xBTC','GRU-ETH-AB'],
+};
+const TAG_LABEL = {
+  'LSTM-BTC':'基準 LSTM','GRU-BTC':'基準 GRU','HYBRID-BTC':'基準 HYBRID★',
+  'LSTM-ETH':'基準 LSTM','GRU-ETH':'基準 GRU★','HYBRID-ETH':'基準 HYBRID',
+  'HYBRID-BTC-OHLC':'OPT-A (OHLC)','HYBRID-BTC-OHLC-Range':'OPT-A2 (OHLC+Range)',
+  'HYBRID-BTC-xETH':'OPT-B (CrossCoin)','HYBRID-BTC-AB':'OPT-AB',
+  'GRU-ETH-OHLC':'OPT-A (OHLC)','GRU-ETH-OHLC-Range':'OPT-A2 (OHLC+Range)',
+  'GRU-ETH-xBTC':'OPT-B (CrossCoin)','GRU-ETH-AB':'OPT-AB',
+};
+
+const STRATEGY_COLORS = {
+  'BH':  '#6b6b80',
+  'S1':  '#e8ff47',
+  'S2':  '#47d4ff',
+  'S3':  '#ff6b47',
+};
+const STRATEGY_LABEL = {
+  'S1（無費）':'S1','S2（含費）':'S2','S3（閾值1%）':'S3','Buy & Hold':'BH'
+};
+
+let summaryData = [], btData = [];
+const predCache = {}, btChartData = {};
+const charts = {};
+
+function csvPath(tag) {
+  const all = [...(BASELINE_TAGS.BTC||[]),...(BASELINE_TAGS.ETH||[])];
+  const folder = all.includes(tag) ? 'baseline' : 'opt';
+  return `${DATA_ROOT}/${folder}/${tag}_predictions.csv`;
+}
+
+function loadCSV(url) {
+  return new Promise((res, rej) => {
+    Papa.parse(url, {
+      download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+      complete: r => res(r.data),
+      error: e => rej(e)
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB NAV
+// ══════════════════════════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'prediction') initPredTab();
+  if (name === 'backtest')   initBtTab();
+  if (name === 'simulator')  initSimTab();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHART HELPER
+// ══════════════════════════════════════════════════════════════
+const chartCfg = () => ({
+  responsive: true,
+  plugins: {
+    legend: { labels: { color:'#e8e8f0', font:{family:'Space Mono',size:11}, boxWidth:12 } },
+    tooltip: {
+      backgroundColor:'#1a1a24', borderColor:'#2a2a3a', borderWidth:1,
+      titleColor:'#e8ff47', bodyColor:'#e8e8f0',
+      titleFont:{family:'Space Mono'}, bodyFont:{family:'Space Mono',size:11}
+    }
+  },
+  scales: {
+    x: { ticks:{color:'#6b6b80',font:{family:'Space Mono',size:10}}, grid:{color:'rgba(42,42,58,0.5)'} },
+    y: { ticks:{color:'#6b6b80',font:{family:'Space Mono',size:10}}, grid:{color:'rgba(42,42,58,0.5)'} }
+  }
+});
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ══════════════════════════════════════════════════════════════
+// OVERVIEW TAB
+// ══════════════════════════════════════════════════════════════
+async function initOverview() {
+  summaryData = await loadCSV(`${DATA_ROOT}/FULL_SUMMARY.csv`);
+
+  // Cards
+  const btcBest = summaryData.find(r => r.Coin==='BTC' && r.Phase && r.Phase.includes('★'));
+  const ethBest = summaryData.find(r => r.Coin==='ETH' && r.Phase && r.Phase.includes('★'));
+  document.getElementById('overview-cards').innerHTML = [
+    card('BTC 最佳 RMSE', btcBest?btcBest.RMSE:'—', 'accent', btcBest?btcBest.Model:''),
+    card('ETH 最佳 RMSE', ethBest?ethBest.RMSE:'—', 'accent2', ethBest?ethBest.Model:''),
+    card('實驗總數', summaryData.length, 'accent', '含基準與 OPT'),
+    card('幣別', '2', 'green', 'BTC · ETH'),
+  ].join('');
+
+  // Table
+  const tbody = document.getElementById('summary-table');
+  tbody.innerHTML = summaryData.map(r => `
+    <tr>
+      <td>${r.Phase||'—'}</td>
+      <td><span class="badge badge-${(r.Coin||'').toLowerCase()}">${r.Coin||'—'}</span></td>
+      <td>${r.Model||'—'}</td>
+      <td style="font-family:var(--mono);color:var(--accent)">${r.RMSE??'—'}</td>
+      <td style="font-family:var(--mono)">${r.MAE??'—'}</td>
+      <td style="font-family:var(--mono)">${r['MAPE%']??'—'}</td>
+      <td style="font-family:var(--mono);color:${r.R2>0?'var(--green)':'var(--red)'}">${r.R2??'—'}</td>
+    </tr>`).join('');
+
+  // Chart
+  const phases  = [...new Set(summaryData.map(r=>r.Phase))];
+  const btcVals = phases.map(p => { const r=summaryData.find(x=>x.Phase===p&&x.Coin==='BTC'); return r?r.RMSE:null; });
+  const ethVals = phases.map(p => { const r=summaryData.find(x=>x.Phase===p&&x.Coin==='ETH'); return r?r.RMSE:null; });
+  destroyChart('overview');
+  charts['overview'] = new Chart(document.getElementById('chart-overview'), {
+    type:'bar',
+    data:{
+      labels: phases,
+      datasets:[
+        { label:'BTC', data:btcVals, backgroundColor:'rgba(247,147,26,0.7)', borderRadius:4 },
+        { label:'ETH', data:ethVals, backgroundColor:'rgba(98,126,234,0.7)', borderRadius:4 },
+      ]
+    },
+    options:{ ...chartCfg(), plugins:{...chartCfg().plugins} }
+  });
+}
+
+function card(label, value, cls='', sub='') {
+  return `<div class="card">
+    <div class="card-label">${label}</div>
+    <div class="card-value ${cls}">${value}</div>
+    ${sub?`<div class="card-sub">${sub}</div>`:''}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PREDICTION TAB
+// ══════════════════════════════════════════════════════════════
+function initPredTab() {
+  const coin = document.getElementById('pred-coin').value;
+  const tags  = [...(BASELINE_TAGS[coin]||[]), ...(OPT_TAGS[coin]||[])];
+  const sel   = document.getElementById('pred-exp');
+  sel.innerHTML = tags.map(t=>`<option value="${t}">${TAG_LABEL[t]||t}</option>`).join('');
+  loadPrediction();
+}
+
+async function loadPrediction() {
+  const coin = document.getElementById('pred-coin').value;
+  const tag  = document.getElementById('pred-exp').value;
+
+  // reload experiment list if coin changed
+  const tags = [...(BASELINE_TAGS[coin]||[]),...(OPT_TAGS[coin]||[])];
+  const sel  = document.getElementById('pred-exp');
+  if (!tags.includes(sel.value)) {
+    sel.innerHTML = tags.map(t=>`<option value="${t}">${TAG_LABEL[t]||t}</option>`).join('');
+  }
+
+  if (!predCache[tag]) {
+    predCache[tag] = await loadCSV(csvPath(tag));
+  }
+  const rows = predCache[tag];
+
+  // summary from FULL_SUMMARY
+  const s = summaryData.find(r=>r.Coin===coin && (r.Model===tag.split('-')[0] || r.Phase===`OPT-${tag.split('-').slice(2).join('-')}`));
+
+  // Cards
+  document.getElementById('pred-cards').innerHTML = [
+    card('RMSE', s?s.RMSE:'—', 'accent'),
+    card('MAE',  s?s.MAE:'—',  'accent2'),
+    card('MAPE%',s?s['MAPE%']:'—','green'),
+    card('R²',   s?s.R2:'—', s&&s.R2>0?'green':'red'),
+  ].join('');
+
+  // Price chart
+  const labels     = rows.map((_,i)=>`D${i+1}`);
+  const predClose  = rows.map(r=>r.pred_close);
+  const trueClose  = rows.map(r=>r.true_close);
+  destroyChart('pred-price');
+  charts['pred-price'] = new Chart(document.getElementById('chart-pred-price'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'真實價格', data:trueClose, borderColor:'#e8ff47', borderWidth:1.5, pointRadius:0, tension:0.3 },
+        { label:'預測價格', data:predClose, borderColor:'#47d4ff', borderWidth:1.5, pointRadius:0, tension:0.3, borderDash:[4,2] },
+      ]
+    },
+    options: chartCfg()
+  });
+
+  // Monthly RMSE
+  const months = [...new Set(rows.map(r=>r.month))];
+  const monthlyRmse = months.map(m => {
+    const mrows = rows.filter(r=>r.month===m);
+    const mse = mrows.reduce((s,r)=>s+(r.n_pred-r.n_label)**2,0)/mrows.length;
+    return Math.sqrt(mse);
+  });
+  destroyChart('pred-rmse');
+  charts['pred-rmse'] = new Chart(document.getElementById('chart-pred-rmse'), {
+    type:'bar',
+    data:{
+      labels: months.map(m=>`M${m}`),
+      datasets:[{ label:'RMSE', data:monthlyRmse, backgroundColor:'rgba(232,255,71,0.6)', borderRadius:4 }]
+    },
+    options: chartCfg()
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// BACKTEST TAB
+// ══════════════════════════════════════════════════════════════
+async function initBtTab() {
+  btData = await loadCSV(`${DATA_ROOT}/backtest_summary.csv`);
+  const coin = document.getElementById('bt-coin').value;
+  const exps = [...new Set(btData.filter(r=>r.Coin===coin).map(r=>r.Experiment))];
+  const sel  = document.getElementById('bt-exp');
+  sel.innerHTML = exps.map(e=>`<option value="${e}">${TAG_LABEL[e]||e}</option>`).join('');
+  loadBacktest();
+}
+
+async function loadBacktest() {
+  const coin = document.getElementById('bt-coin').value;
+  const exp  = document.getElementById('bt-exp').value;
+
+  // reload exp list if coin changed
+  const exps = [...new Set(btData.filter(r=>r.Coin===coin).map(r=>r.Experiment))];
+  const sel  = document.getElementById('bt-exp');
+  if (!exps.includes(sel.value)) {
+    sel.innerHTML = exps.map(e=>`<option value="${e}">${TAG_LABEL[e]||e}</option>`).join('');
+  }
+
+  const rows = btData.filter(r=>r.Coin===coin && r.Experiment===exp);
+
+  // Cards — show best strategy (S2)
+  const s2 = rows.find(r=>r.Strategy&&r.Strategy.includes('含費'));
+  const bh = rows.find(r=>r.Strategy==='Buy & Hold');
+  document.getElementById('bt-cards').innerHTML = [
+    card('S2 總報酬率', s2?`${s2['Return%']}%`:'—', s2&&s2['Return%']>0?'green':'red', 'S2（含費0.1%）'),
+    card('B&H 報酬率', bh?`${bh['Return%']}%`:'—', bh&&bh['Return%']>0?'green':'red', 'Buy & Hold'),
+    card('最大回撤', s2?`${s2['MaxDrawdown%']}%`:'—', 'red', 'S2 策略'),
+    card('夏普比率', s2?s2.Sharpe:'—', s2&&s2.Sharpe>1?'green':'accent2', 'S2 策略'),
+  ].join('');
+
+  // Table
+  document.getElementById('bt-table').innerHTML = rows.map(r=>`
+    <tr>
+      <td style="font-family:var(--mono)">${r.Strategy||'—'}</td>
+      <td style="font-family:var(--mono);color:var(--accent)">$${Number(r.FinalValue).toLocaleString()}</td>
+      <td style="font-family:var(--mono);color:${r['Return%']>0?'var(--green)':'var(--red)'}">
+        ${r['Return%']>0?'+':''}${r['Return%']}%</td>
+      <td style="font-family:var(--mono);color:var(--red)">${r['MaxDrawdown%']}%</td>
+      <td style="font-family:var(--mono)">${r.Sharpe}</td>
+      <td style="font-family:var(--mono)">${r.NTrades}</td>
+    </tr>`).join('');
+
+  // Load predictions for chart
+  if (!predCache[exp]) {
+    predCache[exp] = await loadCSV(csvPath(exp)).catch(()=>null);
+  }
+  const preds = predCache[exp];
+  if (!preds) return;
+
+  const portData = simulateAll(preds, 10000);
+  destroyChart('bt');
+  charts['bt'] = new Chart(document.getElementById('chart-bt'), {
+    type:'line',
+    data:{
+      labels: preds.map((_,i)=>`D${i+1}`),
+      datasets:[
+        { label:'Buy & Hold', data:portData.bh, borderColor:'#6b6b80', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'S1（無費）', data:portData.s1, borderColor:'#e8ff47', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'S2（含費）', data:portData.s2, borderColor:'#47d4ff', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'S3（門檻1%）',data:portData.s3, borderColor:'#ff6b47', borderWidth:1.5, pointRadius:0, tension:0.2 },
+      ]
+    },
+    options: chartCfg()
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// SIMULATOR TAB
+// ══════════════════════════════════════════════════════════════
+function initSimTab() {
+  const coin = document.getElementById('sim-coin').value;
+  const tags  = [...(BASELINE_TAGS[coin]||[]),...(OPT_TAGS[coin]||[])];
+  const sel   = document.getElementById('sim-exp');
+  sel.innerHTML = tags.map(t=>`<option value="${t}">${TAG_LABEL[t]||t}</option>`).join('');
+  simUpdate();
+}
+
+async function simUpdate() {
+  const coin    = document.getElementById('sim-coin').value;
+  const tag     = document.getElementById('sim-exp').value;
+  const capital = Number(document.getElementById('sim-capital').value);
+  const fee     = Number(document.getElementById('sim-fee').value) / 10000;
+  const thr     = Number(document.getElementById('sim-thr').value) / 10000;
+
+  const tags = [...(BASELINE_TAGS[coin]||[]),...(OPT_TAGS[coin]||[])];
+  const sel  = document.getElementById('sim-exp');
+  if (!tags.includes(sel.value)) {
+    sel.innerHTML = tags.map(t=>`<option value="${t}">${TAG_LABEL[t]||t}</option>`).join('');
+  }
+
+  if (!predCache[tag]) {
+    predCache[tag] = await loadCSV(csvPath(tag)).catch(()=>null);
+  }
+  const preds = predCache[tag];
+  if (!preds) return;
+
+  const strat = simulate(preds, capital, fee, thr);
+  const bh    = simulateBH(preds, capital);
+
+  // Update result display
+  const ret = ((strat.final - capital)/capital*100).toFixed(2);
+  document.getElementById('sim-return').textContent = `${ret>0?'+':''}${ret}%`;
+  document.getElementById('sim-return').style.color = ret>0?'var(--green)':'var(--red)';
+  document.getElementById('sim-final').textContent  = `$${strat.final.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+  document.getElementById('sim-dd').textContent     = `${strat.maxDd.toFixed(2)}%`;
+  document.getElementById('sim-sharpe').textContent = strat.sharpe.toFixed(3);
+  document.getElementById('sim-trades').textContent = strat.trades;
+
+  destroyChart('sim');
+  charts['sim'] = new Chart(document.getElementById('chart-sim'), {
+    type:'line',
+    data:{
+      labels: preds.map((_,i)=>`D${i+1}`),
+      datasets:[
+        { label:'Buy & Hold', data:bh.portfolio,    borderColor:'#6b6b80', borderWidth:1.5, pointRadius:0, tension:0.2, fill:false },
+        { label:'策略',       data:strat.portfolio, borderColor:'#e8ff47', borderWidth:2,   pointRadius:0, tension:0.2,
+          fill:{ target:'origin', above:'rgba(232,255,71,0.05)', below:'rgba(248,113,113,0.05)' } },
+      ]
+    },
+    options: chartCfg()
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// BACKTEST ENGINE
+// ══════════════════════════════════════════════════════════════
+function simulate(rows, capital, fee=0.001, thr=0) {
+  let cash=capital, pos=0;
+  const portfolio=[], trades=[];
+  for (let i=0;i<rows.length-1;i++){
+    const pNow=rows[i].true_close, pNext=rows[i+1].pred_close;
+    const chg=(pNext-pNow)/pNow;
+    if (chg>thr && pos===0 && cash>0){
+      pos=cash*(1-fee)/pNow; cash=0; trades.push(1);
+    } else if (chg<-thr && pos>0){
+      cash=pos*pNow*(1-fee); pos=0; trades.push(1);
+    }
+    portfolio.push(cash+pos*pNow);
+  }
+  const last=rows[rows.length-1].true_close;
+  const final=cash+pos*last*(1-fee);
+  portfolio.push(final);
+  const arr=new Float64Array(portfolio);
+  const peak=new Float64Array(arr.length);
+  peak[0]=arr[0];
+  for(let i=1;i<arr.length;i++) peak[i]=Math.max(peak[i-1],arr[i]);
+  const dd=Array.from(arr).map((v,i)=>(v-peak[i])/peak[i]*100);
+  const maxDd=Math.min(...dd);
+  const dret=[];
+  for(let i=1;i<portfolio.length;i++) dret.push((portfolio[i]-portfolio[i-1])/portfolio[i-1]);
+  const mean=dret.reduce((a,b)=>a+b,0)/dret.length;
+  const std=Math.sqrt(dret.reduce((a,b)=>a+(b-mean)**2,0)/dret.length);
+  const sharpe=mean/(std+1e-8)*Math.sqrt(365);
+  return { portfolio, final, maxDd, sharpe, trades:trades.length };
+}
+
+function simulateBH(rows, capital) {
+  const coins=capital/rows[0].true_close;
+  return { portfolio: rows.map(r=>coins*r.true_close) };
+}
+
+function simulateAll(rows, capital) {
+  return {
+    bh: simulateBH(rows,capital).portfolio,
+    s1: simulate(rows,capital,0,0).portfolio,
+    s2: simulate(rows,capital,0.001,0).portfolio,
+    s3: simulate(rows,capital,0.001,0.01).portfolio,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+initOverview();
+</script>
+</body>
+</html>
