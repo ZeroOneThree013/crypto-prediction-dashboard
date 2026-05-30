@@ -571,13 +571,22 @@ const TAG_LABEL = {
 };
 
 // Tag → FULL_SUMMARY Phase (for metric card lookup)
-const TAG_TO_PHASE = {
-  'LSTM-BTC':'基準', 'GRU-BTC':'基準', 'HYBRID-BTC':'基準★',
-  'LSTM-ETH':'基準', 'GRU-ETH':'基準★', 'HYBRID-ETH':'基準',
-  'HYBRID-BTC-OHLC':'OPT-A', 'HYBRID-BTC-OHLC-Range':'OPT-A2',
-  'HYBRID-BTC-xETH':'OPT-B', 'HYBRID-BTC-AB':'OPT-AB',
-  'GRU-ETH-OHLC':'OPT-A', 'GRU-ETH-OHLC-Range':'OPT-A2',
-  'GRU-ETH-xBTC':'OPT-B', 'GRU-ETH-AB':'OPT-AB',
+// tag → { phase, model } for precise FULL_SUMMARY lookup
+const TAG_TO_SUMMARY = {
+  'LSTM-BTC':              { phase:'基準',   model:'LSTM'   },
+  'GRU-BTC':               { phase:'基準',   model:'GRU'    },
+  'HYBRID-BTC':            { phase:'基準★',  model:'HYBRID' },
+  'LSTM-ETH':              { phase:'基準',   model:'LSTM'   },
+  'GRU-ETH':               { phase:'基準★',  model:'GRU'    },
+  'HYBRID-ETH':            { phase:'基準',   model:'HYBRID' },
+  'HYBRID-BTC-OHLC':       { phase:'OPT-A',  model:'HYBRID' },
+  'HYBRID-BTC-OHLC-Range': { phase:'OPT-A2', model:'HYBRID' },
+  'HYBRID-BTC-xETH':       { phase:'OPT-B',  model:'HYBRID' },
+  'HYBRID-BTC-AB':         { phase:'OPT-AB', model:'HYBRID' },
+  'GRU-ETH-OHLC':          { phase:'OPT-A',  model:'GRU'   },
+  'GRU-ETH-OHLC-Range':    { phase:'OPT-A2', model:'GRU'   },
+  'GRU-ETH-xBTC':          { phase:'OPT-B',  model:'GRU'   },
+  'GRU-ETH-AB':            { phase:'OPT-AB', model:'GRU'   },
 };
 
 const STRATEGY_COLORS = {
@@ -779,7 +788,8 @@ async function loadPrediction() {
   const rows = predCache[tag];
 
   // summary from FULL_SUMMARY
-  const s = summaryData.find(r=>r.Coin===coin && r.Phase===TAG_TO_PHASE[tag]);
+  const _sm = TAG_TO_SUMMARY[tag] || {};
+  const s = summaryData.find(r=>r.Coin===coin && r.Phase===_sm.phase && r.Model===_sm.model);
 
   // Cards
   document.getElementById('pred-cards').innerHTML = [
