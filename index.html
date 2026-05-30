@@ -401,7 +401,7 @@
   </div>
   <div class="chart-wrap">
     <div class="chart-title">RMSE 比較 — 所有實驗</div>
-    <div class="chart-fixed chart-fixed-320"><canvas id="chart-overview"></div></canvas>
+    <div class="chart-fixed chart-fixed-320"><canvas id="chart-overview"></canvas></div></canvas>
   </div>
   <div class="table-wrap">
     <table>
@@ -436,11 +436,11 @@
   <div id="pred-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">預測價格 vs 真實價格</div>
-    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></div></canvas>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></canvas></div></canvas>
   </div>
   <div class="chart-wrap">
     <div class="chart-title">月度 RMSE 走勢</div>
-    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></div></canvas>
+    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></canvas></div></canvas>
   </div>
 </div>
 
@@ -464,7 +464,7 @@
   <div id="bt-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">資產曲線（初始資金 $10,000）</div>
-    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></div></canvas>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></canvas></div></canvas>
   </div>
   <div class="table-wrap">
     <table>
@@ -538,7 +538,7 @@
     <div>
       <div class="chart-wrap">
         <div class="chart-title">資產曲線 vs Buy &amp; Hold</div>
-        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></div></canvas>
+        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></canvas></div></canvas>
       </div>
     </div>
   </div>
@@ -669,7 +669,19 @@ const chartCfg = () => ({
 });
 
 function destroyChart(id) {
-  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  if (charts[id]) {
+    charts[id].destroy();
+    delete charts[id];
+  }
+  // 每次都重置 canvas，確保 Chart.js 完整重建
+  const canvas = document.getElementById('chart-' + id);
+  if (canvas) {
+    canvas.removeAttribute('width');
+    canvas.removeAttribute('height');
+    canvas.removeAttribute('style');
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
