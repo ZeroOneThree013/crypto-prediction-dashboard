@@ -663,8 +663,8 @@ async function initOverview() {
     data:{
       labels: phases,
       datasets:[
-        { label:'BTC', data:btcVals, backgroundColor:'rgba(247,147,26,0.7)', borderRadius:4 },
-        { label:'ETH', data:ethVals, backgroundColor:'rgba(98,126,234,0.7)', borderRadius:4 },
+        { label:'BTC', data:btcVals, backgroundColor:'rgba(224,100,60,0.85)', borderColor:'#e0643c', borderWidth:1, borderRadius:4 },
+        { label:'ETH', data:ethVals, backgroundColor:'rgba(37,99,199,0.85)', borderColor:'#2563c7', borderWidth:1, borderRadius:4 },
       ]
     },
     options:{ ...chartCfg(), plugins:{...chartCfg().plugins} }
@@ -727,8 +727,8 @@ async function loadPrediction() {
     data:{
       labels,
       datasets:[
-        { label:'真實價格', data:trueClose, borderColor:'#e8ff47', borderWidth:1.5, pointRadius:0, tension:0.3 },
-        { label:'預測價格', data:predClose, borderColor:'#47d4ff', borderWidth:1.5, pointRadius:0, tension:0.3, borderDash:[4,2] },
+        { label:'真實價格', data:trueClose, borderColor:'#2563c7', borderWidth:2, pointRadius:0, tension:0.3 },
+        { label:'預測價格', data:predClose, borderColor:'#e07b54', borderWidth:2, pointRadius:0, tension:0.3, borderDash:[5,3] },
       ]
     },
     options: chartCfg()
@@ -746,7 +746,7 @@ async function loadPrediction() {
     type:'bar',
     data:{
       labels: months.map(m=>`M${m}`),
-      datasets:[{ label:'RMSE', data:monthlyRmse, backgroundColor:'rgba(232,255,71,0.6)', borderRadius:4 }]
+      datasets:[{ label:'RMSE', data:monthlyRmse, backgroundColor:'rgba(37,99,199,0.75)', borderColor:'#2563c7', borderWidth:1, borderRadius:4 }]
     },
     options: chartCfg()
   });
@@ -819,10 +819,10 @@ async function loadBacktest() {
     data:{
       labels: preds.map((_,i)=>`D${i+1}`),
       datasets:[
-        { label:'Buy & Hold', data:portData.bh, borderColor:'#8a8fa8', borderWidth:1.5, pointRadius:0, tension:0.2 },
-        { label:'S1（無費）', data:portData.s1, borderColor:'#4a7fd4', borderWidth:1.5, pointRadius:0, tension:0.2 },
-        { label:'S2（含費）', data:portData.s2, borderColor:'#3a9bdc', borderWidth:1.5, pointRadius:0, tension:0.2 },
-        { label:'S3（門檻1%）',data:portData.s3, borderColor:'#e07b54', borderWidth:1.5, pointRadius:0, tension:0.2 },
+        { label:'Buy & Hold', data:portData.bh, borderColor:'#6b7280', borderWidth:2, pointRadius:0, tension:0.2 },
+        { label:'S1（無費）', data:portData.s1, borderColor:'#2563c7', borderWidth:2, pointRadius:0, tension:0.2 },
+        { label:'S2（含費）', data:portData.s2, borderColor:'#0891b2', borderWidth:2, pointRadius:0, tension:0.2 },
+        { label:'S3（門檻1%）',data:portData.s3, borderColor:'#c2410c', borderWidth:2, pointRadius:0, tension:0.2 },
         { label:'買入點', data:buyDots,  type:'scatter',
           backgroundColor:'#e8503a', borderColor:'#ffffff',
           borderWidth:2, pointRadius:7, pointStyle:'circle', showLine:false },
@@ -887,9 +887,9 @@ async function simUpdate() {
     data:{
       labels: preds.map((_,i)=>`D${i+1}`),
       datasets:[
-        { label:'Buy & Hold', data:bh.portfolio,    borderColor:'#8a8fa8', borderWidth:1.5, pointRadius:0, tension:0.2, fill:false },
-        { label:'策略',       data:strat.portfolio, borderColor:'#4a7fd4', borderWidth:2,   pointRadius:0, tension:0.2,
-          fill:{ target:'origin', above:'rgba(74,127,212,0.06)', below:'rgba(58,172,110,0.06)' } },
+        { label:'Buy & Hold', data:bh.portfolio,    borderColor:'#6b7280', borderWidth:2, pointRadius:0, tension:0.2, fill:false },
+        { label:'策略',       data:strat.portfolio, borderColor:'#2563c7', borderWidth:2.5, pointRadius:0, tension:0.2,
+          fill:{ target:'origin', above:'rgba(37,99,199,0.08)', below:'rgba(220,38,38,0.06)' } },
         { label:'買入', data:simBuyDots,  type:'scatter',
           backgroundColor:'#e8503a', borderColor:'#ffffff',
           borderWidth:2, pointRadius:7, pointStyle:'circle', showLine:false },
