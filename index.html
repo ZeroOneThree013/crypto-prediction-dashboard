@@ -224,6 +224,17 @@
     margin-bottom: 32px;
     position: relative;
   }
+  .chart-wrap canvas {
+    display: block;
+  }
+  .chart-fixed {
+    position: relative;
+    width: 100%;
+  }
+  .chart-fixed-280 { height: 280px; }
+  .chart-fixed-200 { height: 200px; }
+  .chart-fixed-320 { height: 320px; }
+  .chart-fixed-300 { height: 300px; }
   .chart-title {
     font-family: var(--mono);
     font-size: 11px;
@@ -390,7 +401,7 @@
   </div>
   <div class="chart-wrap">
     <div class="chart-title">RMSE 比較 — 所有實驗</div>
-    <canvas id="chart-overview" height="320"></canvas>
+    <div class="chart-fixed chart-fixed-320"><canvas id="chart-overview"></div></canvas>
   </div>
   <div class="table-wrap">
     <table>
@@ -425,11 +436,11 @@
   <div id="pred-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">預測價格 vs 真實價格</div>
-    <canvas id="chart-pred-price" height="280"></canvas>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></div></canvas>
   </div>
   <div class="chart-wrap">
     <div class="chart-title">月度 RMSE 走勢</div>
-    <canvas id="chart-pred-rmse" height="200"></canvas>
+    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></div></canvas>
   </div>
 </div>
 
@@ -453,7 +464,7 @@
   <div id="bt-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">資產曲線（初始資金 $10,000）</div>
-    <canvas id="chart-bt" height="280"></canvas>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></div></canvas>
   </div>
   <div class="table-wrap">
     <table>
@@ -527,7 +538,7 @@
     <div>
       <div class="chart-wrap">
         <div class="chart-title">資產曲線 vs Buy &amp; Hold</div>
-        <canvas id="chart-sim" height="300"></canvas>
+        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></div></canvas>
       </div>
     </div>
   </div>
@@ -642,6 +653,7 @@ function showTab(name) {
 // ══════════════════════════════════════════════════════════════
 const chartCfg = () => ({
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: { labels: { color:'#2c2f3a', font:{family:'Microsoft JhengHei',size:11}, boxWidth:12 } },
     tooltip: {
