@@ -578,6 +578,42 @@ function csvPath(tag) {
   return `${DATA_ROOT}/${folder}/${tag}_predictions.csv`;
 }
 
+
+// ── 日期對照表 ─────────────────────────────────────────────
+// OUTPUTS：每個月的預測天數（對齊論文設定）
+const OUTPUTS_DAYS = [30, 31, 31, 30, 31, 30, 31, 31, 28, 31, 30, 31];
+const TRAIN_SPLIT  = 0.8;
+
+// dateMapCache：{coin: [實際日期字串, ...]} 365 個日期
+const dateMapCache = {};
+
+async function getDateMap(coin) {
+  if (dateMapCache[coin]) return dateMapCache[coin];
+  const yf = await loadCSV(`${DATA_ROOT}/${coin}_yfinance.csv`);
+  const n_train = Math.floor(yf.length * TRAIN_SPLIT);
+  const testDates = yf.slice(n_train).map(r => {
+    const d = new Date(r.date);
+    return d.toISOString().slice(0,10); // yyyy-mm-dd
+  });
+  dateMapCache[coin] = testDates;
+  return testDates;
+}
+
+function buildMonthLabels(testDates) {
+  // 從 testDates 依 OUTPUTS_DAYS 建立 M1~M12 的代表日期（每月第一天）
+  const labels = [];
+  let idx = 0;
+  OUTPUTS_DAYS.forEach((days, mi) => {
+    if (idx < testDates.length) {
+      // yyyy/mm 格式
+      const d = testDates[idx];
+      labels.push(d.slice(0,7).replace('-','/'));
+    }
+    idx += days;
+  });
+  return labels;
+}
+
 function loadCSV(url) {
   return new Promise((res, rej) => {
     Papa.parse(url, {
@@ -717,8 +753,10 @@ async function loadPrediction() {
     card('R²',   s?s.R2:'—', s&&s.R2>0?'green':'red'),
   ].join('');
 
-  // Price chart
-  const labels     = rows.map((_,i)=>`D${i+1}`);
+  // Price chart — 使用實際日期
+  const coinKey    = document.getElementById('pred-coin').value.toLowerCase();
+  const testDates  = await getDateMap(coinKey);
+  const labels     = rows.map((_,i) => testDates[i] ? testDates[i].replace(/-/g,'/') : `D${i+1}`);
   const predClose  = rows.map(r=>r.pred_close);
   const trueClose  = rows.map(r=>r.true_close);
   destroyChart('pred-price');
@@ -741,11 +779,12 @@ async function loadPrediction() {
     const mse = mrows.reduce((s,r)=>s+(r.n_pred-r.n_label)**2,0)/mrows.length;
     return Math.sqrt(mse);
   });
+  const monthLabels = buildMonthLabels(testDates);
   destroyChart('pred-rmse');
   charts['pred-rmse'] = new Chart(document.getElementById('chart-pred-rmse'), {
     type:'bar',
     data:{
-      labels: months.map(m=>`M${m}`),
+      labels: months.map((m,i) => monthLabels[i] || `M${m}`),
       datasets:[{ label:'RMSE', data:monthlyRmse, backgroundColor:'rgba(37,99,199,0.75)', borderColor:'#2563c7', borderWidth:1, borderRadius:4 }]
     },
     options: chartCfg()
@@ -813,11 +852,16 @@ async function loadBacktest() {
   const buyDots  = preds.map((_,i) => s2sim.buyIdx.includes(i)  ? s2port[i] : null);
   const sellDots = preds.map((_,i) => s2sim.sellIdx.includes(i) ? s2port[i] : null);
 
+  // 取得實際日期
+  const btCoinKey  = document.getElementById('bt-coin').value.toLowerCase();
+  const btDates    = await getDateMap(btCoinKey);
+  const btLabels   = preds.map((_,i) => btDates[i] ? btDates[i].replace(/-/g,'/') : `D${i+1}`);
+
   destroyChart('bt');
   charts['bt'] = new Chart(document.getElementById('chart-bt'), {
     type:'line',
     data:{
-      labels: preds.map((_,i)=>`D${i+1}`),
+      labels: btLabels,
       datasets:[
         { label:'Buy & Hold', data:portData.bh, borderColor:'#6b7280', borderWidth:2, pointRadius:0, tension:0.2 },
         { label:'S1（無費）', data:portData.s1, borderColor:'#2563c7', borderWidth:2, pointRadius:0, tension:0.2 },
@@ -881,11 +925,16 @@ async function simUpdate() {
   const simBuyDots  = preds.map((_,i) => strat.buyIdx.includes(i)  ? strat.portfolio[i] : null);
   const simSellDots = preds.map((_,i) => strat.sellIdx.includes(i) ? strat.portfolio[i] : null);
 
+  // 取得實際日期
+  const simCoinKey = document.getElementById('sim-coin').value.toLowerCase();
+  const simDates   = await getDateMap(simCoinKey);
+  const simLabels  = preds.map((_,i) => simDates[i] ? simDates[i].replace(/-/g,'/') : `D${i+1}`);
+
   destroyChart('sim');
   charts['sim'] = new Chart(document.getElementById('chart-sim'), {
     type:'line',
     data:{
-      labels: preds.map((_,i)=>`D${i+1}`),
+      labels: simLabels,
       datasets:[
         { label:'Buy & Hold', data:bh.portfolio,    borderColor:'#6b7280', borderWidth:2, pointRadius:0, tension:0.2, fill:false },
         { label:'策略',       data:strat.portfolio, borderColor:'#2563c7', borderWidth:2.5, pointRadius:0, tension:0.2,
