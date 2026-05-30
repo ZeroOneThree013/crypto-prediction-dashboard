@@ -550,7 +550,7 @@
 // ══════════════════════════════════════════════════════════════
 // DATA LAYER
 // ══════════════════════════════════════════════════════════════
-const DATA_ROOT = '.';
+const DATA_ROOT = './data';
 
 const BASELINE_TAGS = {
   BTC: ['LSTM-BTC','GRU-BTC','HYBRID-BTC'],
@@ -561,23 +561,6 @@ const OPT_TAGS = {
   ETH: ['GRU-ETH-OHLC','GRU-ETH-OHLC-Range','GRU-ETH-xBTC','GRU-ETH-AB'],
 };
 
-// Tag → actual filename stem (dashes removed, special chars normalized)
-const TAG_TO_FILE = {
-  'LSTM-BTC':              'LSTMBTC',
-  'GRU-BTC':               'GRUBTC',
-  'HYBRID-BTC':            'HYBRIDBTC',
-  'LSTM-ETH':              'LSTMETH',
-  'GRU-ETH':               'GRUETH',
-  'HYBRID-ETH':            'HYBRIDETH',
-  'HYBRID-BTC-OHLC':       'HYBRIDBTCOHLC',
-  'HYBRID-BTC-OHLC-Range': 'HYBRIDBTCOHLCRange',
-  'HYBRID-BTC-xETH':       'HYBRIDBTCxETH',
-  'HYBRID-BTC-AB':         'HYBRIDBTCAB',
-  'GRU-ETH-OHLC':          'GRUETHOHLC',
-  'GRU-ETH-OHLC-Range':    'GRUETHOHLCRange',
-  'GRU-ETH-xBTC':          'GRUETHxBTC',
-  'GRU-ETH-AB':            'GRUETHAB',
-};
 const TAG_LABEL = {
   'LSTM-BTC':'基準 LSTM','GRU-BTC':'基準 GRU','HYBRID-BTC':'基準 HYBRID★',
   'LSTM-ETH':'基準 LSTM','GRU-ETH':'基準 GRU★','HYBRID-ETH':'基準 HYBRID',
@@ -612,8 +595,9 @@ const predCache = {}, btChartData = {};
 const charts = {};
 
 function csvPath(tag) {
-  const stem = TAG_TO_FILE[tag] || tag.replace(/-/g,"");
-  return `${DATA_ROOT}/${stem}_predictions.csv`;
+  const baselines = [...(BASELINE_TAGS.BTC||[]),...(BASELINE_TAGS.ETH||[])];
+  const folder = baselines.includes(tag) ? 'baseline' : 'opt';
+  return `${DATA_ROOT}/${folder}/${tag}_predictions.csv`;
 }
 
 
