@@ -288,6 +288,42 @@
   .badge-eth { background: rgba(98,126,234,0.15); color: #627eea; }
   .badge-best { background: rgba(232,255,71,0.15); color: var(--accent); }
 
+  /* ── SIMULATOR METRICS BAR ── */
+  .sim-metrics-bar {
+    display: flex;
+    align-items: center;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    gap: 0;
+  }
+  .sim-metric-inline {
+    flex: 1;
+    text-align: center;
+  }
+  .sim-metric-inline .sim-metric-val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .sim-metric-inline .sim-metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .sim-metrics-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
   /* ── SIMULATOR ── */
   .sim-layout {
     display: grid;
@@ -566,30 +602,35 @@
         <input type="range" id="sim-thr" min="0" max="500" step="5" value="0"
                oninput="document.getElementById('sim-thr-val').textContent=(this.value/100).toFixed(2)+'%'; simUpdate()">
       </div>
-      <div class="sim-results">
-        <div class="sim-metric">
+    </div>
+    <div>
+      <!-- 指標列：橫排在圖的上方 -->
+      <div class="sim-metrics-bar">
+        <div class="sim-metric-inline">
           <div class="sim-metric-val" id="sim-return" style="color:var(--green)">—</div>
           <div class="sim-metric-label">總報酬率</div>
         </div>
-        <div class="sim-metric">
+        <div class="sim-metrics-divider"></div>
+        <div class="sim-metric-inline">
           <div class="sim-metric-val" id="sim-final" style="color:var(--accent)">—</div>
           <div class="sim-metric-label">最終資產</div>
         </div>
-        <div class="sim-metric">
+        <div class="sim-metrics-divider"></div>
+        <div class="sim-metric-inline">
           <div class="sim-metric-val" id="sim-dd" style="color:var(--red)">—</div>
           <div class="sim-metric-label">最大回撤</div>
         </div>
-        <div class="sim-metric">
+        <div class="sim-metrics-divider"></div>
+        <div class="sim-metric-inline">
           <div class="sim-metric-val" id="sim-sharpe" style="color:var(--accent2)">—</div>
           <div class="sim-metric-label">夏普比率</div>
         </div>
-        <div class="sim-metric" style="grid-column:span 2">
+        <div class="sim-metrics-divider"></div>
+        <div class="sim-metric-inline">
           <div class="sim-metric-val" id="sim-trades" style="color:var(--text)">—</div>
           <div class="sim-metric-label">交易次數</div>
         </div>
       </div>
-    </div>
-    <div>
       <div class="chart-wrap">
         <div class="chart-title">資產曲線 vs Buy &amp; Hold</div>
         <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></canvas></div></canvas>
