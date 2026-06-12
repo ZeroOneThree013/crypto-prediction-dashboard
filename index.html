@@ -366,10 +366,29 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ── OVERVIEW SPLIT ── */
+  .overview-coin-section {
+    margin-bottom: 40px;
+  }
+  .overview-coin-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .overview-split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .overview-chart-col { margin-bottom: 0; }
+  .overview-table-col { margin-bottom: 0; }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
     header, nav, main { padding-left: 20px; padding-right: 20px; }
     .sim-layout { grid-template-columns: 1fr; }
+    .overview-split-layout { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -384,10 +403,10 @@
 </header>
 
 <nav>
-  <button class="active" onclick="showTab('overview',this)">Overview</button>
-  <button onclick="showTab('prediction',this)">預測表現</button>
-  <button onclick="showTab('backtest',this)">回測結果</button>
-  <button onclick="showTab('simulator',this)">模擬器</button>
+  <button class="active" onclick="showTab('overview')">Overview</button>
+  <button onclick="showTab('prediction')">預測表現</button>
+  <button onclick="showTab('backtest')">回測結果</button>
+  <button onclick="showTab('simulator')">模擬器</button>
 </nav>
 
 <main>
@@ -399,20 +418,55 @@
   <div id="overview-cards" class="cards-grid">
     <div class="loading">載入中</div>
   </div>
-  <div class="chart-wrap">
-    <div class="chart-title">RMSE 比較 — 所有實驗</div>
-    <div class="chart-fixed chart-fixed-320"><canvas id="chart-overview"></canvas></div>
+
+  <!-- BTC 區塊 -->
+  <div class="overview-coin-section">
+    <div class="overview-coin-label">
+      <span class="badge badge-btc" style="font-size:13px;padding:4px 12px;">BTC</span>
+      <span style="margin-left:10px;font-size:13px;color:var(--text-dim);font-family:var(--mono);">Bitcoin — RMSE 比較</span>
+    </div>
+    <div class="overview-split-layout">
+      <div class="chart-wrap overview-chart-col">
+        <div class="chart-title">RMSE 比較 — BTC 所有實驗</div>
+        <div class="chart-fixed chart-fixed-280"><canvas id="chart-overview-btc"></canvas></div>
+      </div>
+      <div class="table-wrap overview-table-col">
+        <table>
+          <thead>
+            <tr>
+              <th>實驗</th><th>模型</th>
+              <th>RMSE</th><th>MAE</th><th>MAPE%</th><th>R²</th>
+            </tr>
+          </thead>
+          <tbody id="summary-table-btc"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>實驗</th><th>幣別</th><th>模型</th>
-          <th>RMSE</th><th>MAE</th><th>MAPE%</th><th>R²</th>
-        </tr>
-      </thead>
-      <tbody id="summary-table"></tbody>
-    </table>
+
+  <!-- ETH 區塊 -->
+  <div class="overview-coin-section">
+    <div class="overview-coin-label">
+      <span class="badge badge-eth" style="font-size:13px;padding:4px 12px;">ETH</span>
+      <span style="margin-left:10px;font-size:13px;color:var(--text-dim);font-family:var(--mono);">Ethereum — RMSE 比較</span>
+    </div>
+    <div class="overview-split-layout">
+      <div class="chart-wrap overview-chart-col">
+        <div class="chart-title">RMSE 比較 — ETH 所有實驗</div>
+        <div class="chart-fixed chart-fixed-280"><canvas id="chart-overview-eth"></canvas></div>
+      </div>
+      <div class="table-wrap overview-table-col">
+        <table>
+          <thead>
+            <tr>
+              <th>實驗</th><th>模型</th>
+              <th>RMSE</th><th>MAE</th><th>MAPE%</th><th>R²</th>
+            </tr>
+          </thead>
+          <tbody id="summary-table-eth"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -423,7 +477,7 @@
   <div class="controls">
     <div class="control-group">
       <label>幣別</label>
-      <select id="pred-coin" onchange="initPredTab()">
+      <select id="pred-coin" onchange="loadPrediction()">
         <option value="BTC">BTC</option>
         <option value="ETH">ETH</option>
       </select>
@@ -436,11 +490,11 @@
   <div id="pred-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">預測價格 vs 真實價格</div>
-    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></canvas></div>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-pred-price"></canvas></div></canvas>
   </div>
   <div class="chart-wrap">
-    <div class="chart-title">月度 RMSE 走勢（正規化尺度）</div>
-    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></canvas></div>
+    <div class="chart-title">月度 RMSE 走勢</div>
+    <div class="chart-fixed chart-fixed-200"><canvas id="chart-pred-rmse"></canvas></div></canvas>
   </div>
 </div>
 
@@ -451,7 +505,7 @@
   <div class="controls">
     <div class="control-group">
       <label>幣別</label>
-      <select id="bt-coin" onchange="initBtTab()">
+      <select id="bt-coin" onchange="loadBacktest()">
         <option value="BTC">BTC</option>
         <option value="ETH">ETH</option>
       </select>
@@ -464,7 +518,7 @@
   <div id="bt-cards" class="cards-grid"></div>
   <div class="chart-wrap">
     <div class="chart-title">資產曲線（初始資金 $10,000）</div>
-    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></canvas></div>
+    <div class="chart-fixed chart-fixed-280"><canvas id="chart-bt"></canvas></div></canvas>
   </div>
   <div class="table-wrap">
     <table>
@@ -488,7 +542,7 @@
       <h3>參數設定</h3>
       <div class="sim-row">
         <label>幣別</label>
-        <select id="sim-coin" onchange="initSimTab()">
+        <select id="sim-coin" onchange="simUpdate()">
           <option value="BTC">BTC</option>
           <option value="ETH">ETH</option>
         </select>
@@ -538,7 +592,7 @@
     <div>
       <div class="chart-wrap">
         <div class="chart-title">資產曲線 vs Buy &amp; Hold</div>
-        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></canvas></div>
+        <div class="chart-fixed chart-fixed-300"><canvas id="chart-sim"></canvas></div></canvas>
       </div>
     </div>
   </div>
@@ -560,7 +614,6 @@ const OPT_TAGS = {
   BTC: ['HYBRID-BTC-OHLC','HYBRID-BTC-OHLC-Range','HYBRID-BTC-xETH','HYBRID-BTC-AB'],
   ETH: ['GRU-ETH-OHLC','GRU-ETH-OHLC-Range','GRU-ETH-xBTC','GRU-ETH-AB'],
 };
-
 const TAG_LABEL = {
   'LSTM-BTC':'基準 LSTM','GRU-BTC':'基準 GRU','HYBRID-BTC':'基準 HYBRID★',
   'LSTM-ETH':'基準 LSTM','GRU-ETH':'基準 GRU★','HYBRID-ETH':'基準 HYBRID',
@@ -568,25 +621,6 @@ const TAG_LABEL = {
   'HYBRID-BTC-xETH':'OPT-B (CrossCoin)','HYBRID-BTC-AB':'OPT-AB',
   'GRU-ETH-OHLC':'OPT-A (OHLC)','GRU-ETH-OHLC-Range':'OPT-A2 (OHLC+Range)',
   'GRU-ETH-xBTC':'OPT-B (CrossCoin)','GRU-ETH-AB':'OPT-AB',
-};
-
-// Tag → FULL_SUMMARY Phase (for metric card lookup)
-// tag → { phase, model } for precise FULL_SUMMARY lookup
-const TAG_TO_SUMMARY = {
-  'LSTM-BTC':              { phase:'基準',   model:'LSTM'   },
-  'GRU-BTC':               { phase:'基準',   model:'GRU'    },
-  'HYBRID-BTC':            { phase:'基準★',  model:'HYBRID' },
-  'LSTM-ETH':              { phase:'基準',   model:'LSTM'   },
-  'GRU-ETH':               { phase:'基準★',  model:'GRU'    },
-  'HYBRID-ETH':            { phase:'基準',   model:'HYBRID' },
-  'HYBRID-BTC-OHLC':       { phase:'OPT-A',  model:'HYBRID' },
-  'HYBRID-BTC-OHLC-Range': { phase:'OPT-A2', model:'HYBRID' },
-  'HYBRID-BTC-xETH':       { phase:'OPT-B',  model:'HYBRID' },
-  'HYBRID-BTC-AB':         { phase:'OPT-AB', model:'HYBRID' },
-  'GRU-ETH-OHLC':          { phase:'OPT-A',  model:'GRU'   },
-  'GRU-ETH-OHLC-Range':    { phase:'OPT-A2', model:'GRU'   },
-  'GRU-ETH-xBTC':          { phase:'OPT-B',  model:'GRU'   },
-  'GRU-ETH-AB':            { phase:'OPT-AB', model:'GRU'   },
 };
 
 const STRATEGY_COLORS = {
@@ -604,8 +638,8 @@ const predCache = {}, btChartData = {};
 const charts = {};
 
 function csvPath(tag) {
-  const baselines = [...(BASELINE_TAGS.BTC||[]),...(BASELINE_TAGS.ETH||[])];
-  const folder = baselines.includes(tag) ? 'baseline' : 'opt';
+  const all = [...(BASELINE_TAGS.BTC||[]),...(BASELINE_TAGS.ETH||[])];
+  const folder = all.includes(tag) ? 'baseline' : 'opt';
   return `${DATA_ROOT}/${folder}/${tag}_predictions.csv`;
 }
 
@@ -658,11 +692,11 @@ function loadCSV(url) {
 // ══════════════════════════════════════════════════════════════
 // TAB NAV
 // ══════════════════════════════════════════════════════════════
-function showTab(name, btn) {
+function showTab(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  if (btn) btn.classList.add('active');
+  event.target.classList.add('active');
   if (name === 'prediction') initPredTab();
   if (name === 'backtest')   initBtTab();
   if (name === 'simulator')  initSimTab();
@@ -720,36 +754,43 @@ async function initOverview() {
     card('幣別', '2', 'green', 'BTC · ETH'),
   ].join('');
 
-  // Table
-  const tbody = document.getElementById('summary-table');
-  tbody.innerHTML = summaryData.map(r => `
-    <tr>
-      <td>${r.Phase||'—'}</td>
-      <td><span class="badge badge-${(r.Coin||'').toLowerCase()}">${r.Coin||'—'}</span></td>
-      <td>${r.Model||'—'}</td>
-      <td style="font-family:var(--mono);color:var(--accent)">${r.RMSE??'—'}</td>
-      <td style="font-family:var(--mono)">${r.MAE??'—'}</td>
-      <td style="font-family:var(--mono)">${r['MAPE%']??'—'}</td>
-      <td style="font-family:var(--mono);color:${r.R2>0?'var(--green)':'var(--red)'}">${r.R2??'—'}</td>
-    </tr>`).join('');
+  // Helper: render one coin's table + chart
+  function renderCoinOverview(coinKey, chartId, tbodyId, barColor, borderColor) {
+    const coinData = summaryData.filter(r => r.Coin === coinKey);
+    // Table
+    document.getElementById(tbodyId).innerHTML = coinData.map(r => {
+      const isBest = r.Phase && r.Phase.includes('★');
+      return `<tr${isBest?' style="background:rgba(74,127,212,0.06)"':''}>
+        <td>${(r.Phase||'—').replace('★','<span style="color:var(--accent)">★</span>')}</td>
+        <td style="font-family:var(--mono)">${r.Model||'—'}</td>
+        <td style="font-family:var(--mono);color:var(--accent);font-weight:${isBest?700:400}">${r.RMSE??'—'}</td>
+        <td style="font-family:var(--mono)">${r.MAE??'—'}</td>
+        <td style="font-family:var(--mono)">${r['MAPE%']??'—'}</td>
+        <td style="font-family:var(--mono);color:${r.R2>0?'var(--green)':'var(--red)'}">${r.R2??'—'}</td>
+      </tr>`;
+    }).join('');
+    // Chart
+    const labels = coinData.map(r => r.Phase||'—');
+    const vals   = coinData.map(r => r.RMSE);
+    const bgs    = coinData.map(r => r.Phase&&r.Phase.includes('★')
+      ? barColor.replace('0.85','1') : barColor);
+    destroyChart(chartId);
+    charts[chartId] = new Chart(document.getElementById('chart-'+chartId), {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[{ label:'RMSE', data:vals, backgroundColor:bgs,
+          borderColor, borderWidth:1, borderRadius:4 }]
+      },
+      options:{ ...chartCfg(),
+        plugins:{ ...chartCfg().plugins,
+          legend:{ display:false } }
+      }
+    });
+  }
 
-  // Chart
-  // Use Phase+Model as unique labels to show ALL 14 rows (not just first match per phase)
-  const ovLabels = summaryData.map(r => `${r.Phase} ${r.Model}`);
-  const ovBTC    = summaryData.map(r => r.Coin==='BTC' ? r.RMSE : null);
-  const ovETH    = summaryData.map(r => r.Coin==='ETH' ? r.RMSE : null);
-  destroyChart('overview');
-  charts['overview'] = new Chart(document.getElementById('chart-overview'), {
-    type:'bar',
-    data:{
-      labels: ovLabels,
-      datasets:[
-        { label:'BTC', data:ovBTC, backgroundColor:'rgba(224,100,60,0.85)', borderColor:'#e0643c', borderWidth:1, borderRadius:4 },
-        { label:'ETH', data:ovETH, backgroundColor:'rgba(37,99,199,0.85)', borderColor:'#2563c7', borderWidth:1, borderRadius:4 },
-      ]
-    },
-    options:{ ...chartCfg(), plugins:{...chartCfg().plugins} }
-  });
+  renderCoinOverview('BTC','overview-btc','summary-table-btc','rgba(224,100,60,0.85)','#e0643c');
+  renderCoinOverview('ETH','overview-eth','summary-table-eth','rgba(37,99,199,0.85)','#2563c7');
 }
 
 function card(label, value, cls='', sub='') {
@@ -763,8 +804,7 @@ function card(label, value, cls='', sub='') {
 // ══════════════════════════════════════════════════════════════
 // PREDICTION TAB
 // ══════════════════════════════════════════════════════════════
-async function initPredTab() {
-  if (!summaryData.length) await initOverview();
+function initPredTab() {
   const coin = document.getElementById('pred-coin').value;
   const tags  = [...(BASELINE_TAGS[coin]||[]), ...(OPT_TAGS[coin]||[])];
   const sel   = document.getElementById('pred-exp');
@@ -784,14 +824,12 @@ async function loadPrediction() {
   }
 
   if (!predCache[tag]) {
-    predCache[tag] = await loadCSV(csvPath(tag)).catch(()=>null);
+    predCache[tag] = await loadCSV(csvPath(tag));
   }
   const rows = predCache[tag];
-  if (!rows) return;
 
   // summary from FULL_SUMMARY
-  const _sm = TAG_TO_SUMMARY[tag] || {};
-  const s = summaryData.find(r=>r.Coin===coin && r.Phase===_sm.phase && r.Model===_sm.model);
+  const s = summaryData.find(r=>r.Coin===coin && (r.Model===tag.split('-')[0] || r.Phase===`OPT-${tag.split('-').slice(2).join('-')}`));
 
   // Cards
   document.getElementById('pred-cards').innerHTML = [
@@ -843,7 +881,7 @@ async function loadPrediction() {
 // BACKTEST TAB
 // ══════════════════════════════════════════════════════════════
 async function initBtTab() {
-  if (!btData.length) btData = await loadCSV(`${DATA_ROOT}/backtest_summary.csv`);
+  btData = await loadCSV(`${DATA_ROOT}/backtest_summary.csv`);
   const coin = document.getElementById('bt-coin').value;
   const exps = [...new Set(btData.filter(r=>r.Coin===coin).map(r=>r.Experiment))];
   const sel  = document.getElementById('bt-exp');
